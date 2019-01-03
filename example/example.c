@@ -2,11 +2,25 @@
 
 #include "lshell.h"
 
-void test_qqq(int argc, char **argv)
+void test_cd(int argc, char **argv)
 {
 	int i;
 	
-	printf("qqq\n");
+	printf("cd\n");
+	printf("%d\n", argc);
+	for(i = 0; i < argc; i++)
+	{
+		printf("%s\n", argv[i]);
+	}
+	
+	return;
+}
+
+void test_ls(int argc, char **argv)
+{
+	int i;
+	
+	printf("ls\n");
 	printf("%d\n", argc);
 	for(i = 0; i < argc; i++)
 	{
@@ -18,9 +32,13 @@ void test_qqq(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	int ret;
+	
 	lshell_init();
-	lshell_set_promt("test");
-	lshell_register(-1, "qqq", "qqq", test_qqq);
+	lshell_set_promt("ex");
+	lshell_set_errmsg_swtich(1);
+	ret = lshell_register(-1, "ls", "ls", test_ls);
+	lshell_register(ret, "cd", "cd", test_cd);
 	lshell_start();
 		
 	return 0;		
