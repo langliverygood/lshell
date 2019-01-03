@@ -61,7 +61,7 @@ static int get_cmd_index(char *cmd)
 /* 返回值：存在 该命令在_cmd_all 中的下标 **************************/
 /*      ：不存在 -1 *********************************************/
 /**************************************************************/
-static int cmd_exist(char **arg, int num)
+static int cmd_exist(char *arg, int num)
 {
     int i;
     char tmp[COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];
@@ -75,7 +75,7 @@ static int cmd_exist(char **arg, int num)
     memset(tmp, 0, sizeof(tmp));
     for(i = 0; i < num; i++)
     {
-        strcat(tmp, arg[i]);
+        strcat(tmp, &arg[i * (ARGS_MAX_LEN + 1)]);
         strcat(tmp, " ");
     }
     tmp[strlen(tmp) - 1] = '\0';
@@ -183,7 +183,7 @@ static int lshell_analysis_input(const char *input)
         }
     }
     /* 判断命令是否存在 */
-    id = cmd_exist((char **)input_arg, i);
+    id = cmd_exist((char *)input_arg, i);
     if(id == -1)
     {
         return -1;
