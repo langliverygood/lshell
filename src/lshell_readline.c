@@ -5,7 +5,7 @@
 #include "lshell_def.h"
 #include "lshell_readline.h"
 
-command_s _my_cmd[COMMAND_MAX_NUM + 1]; /* 命令数组,下标从0开始 */
+command_s _my_cmd[COMMAND_MAX_NUM]; /* 命令数组,下标从0开始 */
 int _cmd_index;                         /* 当前第一个未使用的数组下标 */
 char _promt[PROMT_MAX_LEN + 1];         /* 提示符 */
 char *_input_buf;                       /* 输入 */

@@ -6,7 +6,7 @@
 #include "lshell_def.h"
 #include "lshell.h"
 
-extern command_s _my_cmd[COMMAND_MAX_NUM + 1]; /* 命令数组,下标从0开始 */
+extern command_s _my_cmd[COMMAND_MAX_NUM];     /* 命令数组,下标从0开始 */
 extern int _cmd_index;                         /* 当前第一个未使用的数组下标 */
 extern char _promt[PROMT_MAX_LEN + 1];         /* 提示符 */
 extern char *_input_buf;                       /* 输入 */
@@ -65,7 +65,7 @@ static int get_id_by_cmd(const char *cmd)
     return -1;
 }
 
-/* 参数：终端的输入*/
+/* 参数：终端的输入 */
 /* 说明：解析终端的输入 */
 /* 返回值：该命令的id，若出错则返回-1 */
 static int lshell_analysis_input(const char *input)
