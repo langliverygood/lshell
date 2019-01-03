@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
+#include <stdlib.h>
 
 #include "lshell_readline.h"
 #include "lshell_def.h"
@@ -204,6 +205,31 @@ static int lshell_analysis_input(const char *input)
 }
 
 /***************************************************************/
+/* 说  明：预定义help命令 *****************************************/
+/***************************************************************/
+static void lshell_help(int argc, char **argv)
+{
+	int i;
+	
+	for(i = 0; i < _cmd_index; i++)
+	{
+		printf("%*s     \"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
+	}
+	
+	return;
+}
+
+/***************************************************************/
+/* 说  明：预定义exit命令 *****************************************/
+/***************************************************************/
+static void lshell_exit(int argc, char **argv)
+{
+    printf("Bye!\n");
+    
+	exit(0);
+}
+
+/***************************************************************/
 /**函  数：int lshell_register(int parent...) *******************/
 /* 说  明：注册命令 **********************************************/
 /* 参  数：parent 父命令id，若无父命令，则为-1 **********************/
@@ -316,6 +342,8 @@ void lshell_init()
 {
     lshell_readline_init();
     lshell_set_promt("lshell");
+    lshell_register(-1, "exit", "exit", lshell_exit);
+	lshell_register(-1, "help", "help", lshell_help);
 
     return;
 }
