@@ -1,20 +1,45 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <malloc.h>
-#include <stdlib.h>
 
 #include "lshell_readline.h"
 #include "lshell_def.h"
+#include "threads_manage.h"
 #include "lshell.h"
 
 extern command_s _my_cmd[COMMAND_MAX_NUM];                                     /* 命令数组,下标从0开始 */
 extern int _cmd_index;                                                         /* 当前第一个未使用的数组下标 */
 extern char _promt[PROMT_MAX_LEN + 1];                                         /* 提示符 */
 extern char _cmd_all[COMMAND_MAX_NUM][COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];/* 父命令和子命令拼接后的所有命令 */
-static int _input_cnt;                                                         /* 输入中除去命令后的参数个数,传递给回调函数 */
-static char **_input_arg;                                                      /* 输入中除去命令后的每个参数,传递给回调函数 */
+int _input_cnt;                                                                /* 输入中除去命令后的参数个数,传递给回调函数 */
+char **_input_arg;                                                             /* 输入中除去命令后的每个参数,传递给回调函数 */
 static char _err_msg[ERR_MSG_LEN + 1];                                         /* 错误信息 */
 static char _err_msg_on;                                                       /* 错误信息开关 */
+static thread_header_s th_header[THREAD_MAX_NUM];                              /* 线程管理结构体数组 */
+
+/***************************************************************/
+/**函  数：get_first_unused_th_header() *************************/
+/* 说  明：返回当前第一个未使用的线程头结构体的下标 ********************/
+/* 参  数：无 ****************************************************/
+/* 返回值：下标 ***************************************************/
+/*      ：-1 结构体全被占用 ***************************************/
+/***************************************************************/
+static int get_first_unused_th_header()
+{
+	int i;
+	
+	for(i = 0; i < THREAD_MAX_NUM; i++)
+	{
+		if(th_header[i].used == 0)
+		{
+			return i;
+		}
+	}
+	
+	return -1;
+}
 
 /***************************************************************/
 /**函  数：static void print_err_msg() **************************/
@@ -213,7 +238,7 @@ static void lshell_help(int argc, char **argv)
 	
 	for(i = 0; i < _cmd_index; i++)
 	{
-		printf("%*s     \"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
+		printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
 	}
 	
 	return;
@@ -236,10 +261,11 @@ static void lshell_exit(int argc, char **argv)
 /* 参  数：cmd 待注册的命令 ***************************************/
 /* 参  数：tip 待注册命令的提示 ***********************************/
 /* 参  数：func 函数指针 *****************************************/
+/* 参  数：mode 命令执行方式，在子线程中0/在主线程中1 ****************/
 /* 返回值：成功 该命令在结构体数组中的下标 ***************************/
 /*      ：失败 -1 ***********************************************/
 /***************************************************************/
-int lshell_register(int parent, const char *cmd, const char *tip, void (* func)(int argc, char **argv))
+int lshell_register(int parent, const char *cmd, const char *tip, void (* func)(int argc, char **argv), int mode)
 {
     int i;
     char tmp[COMMAND_MAX_DEP][COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];
@@ -265,6 +291,7 @@ int lshell_register(int parent, const char *cmd, const char *tip, void (* func)(
     strcpy(_my_cmd[_cmd_index].cmd, cmd);
     strcpy(_my_cmd[_cmd_index].tip, tip);
     _my_cmd[_cmd_index].func = func;
+    _my_cmd[_cmd_index].mode = mode;
     
     i = 0;
     memset(tmp, 0, sizeof(tmp));
@@ -342,8 +369,10 @@ void lshell_init()
 {
     lshell_readline_init();
     lshell_set_promt("lshell");
-    lshell_register(-1, "exit", "exit", lshell_exit);
-	lshell_register(-1, "help", "help", lshell_help);
+    lshell_register(-1, "exit", "exit", lshell_exit, RUN_AT_MAIN_THREAD);
+	lshell_register(-1, "help", "help", lshell_help, RUN_AT_MAIN_THREAD);
+	//lshell_register(-1, "threads", "threads", lshell_help, RUN_AT_MAIN_THREAD);
+	//lshell_register(-1, "stop", "stop", lshell_help, RUN_AT_MAIN_THREAD);
 
     return;
 }
@@ -378,13 +407,30 @@ void lshell_start()
         }
         else
         {
-            _my_cmd[ret].func(_input_cnt, _input_arg);
-            for(i = 0; i < _input_cnt; i++)
-            {
-                free(_input_arg[i]);
-            }
-            free(_input_arg);
-            _input_arg = NULL;
+			if(_my_cmd[ret].mode == RUN_AT_NEW_THREAD)
+			{
+				i = get_first_unused_th_header();
+				if(i == -1)
+				{
+					printf("The number of threads the program can handle has reached its maximum\n");
+					continue;
+				}
+				th_header[i].argc = _input_cnt;
+				th_header[i].argv = _input_arg;
+				th_header[i].func = _my_cmd[ret].func;
+				thread_start(&th_header[i], _my_cmd[ret].tip);
+			}
+			else
+			{
+				_my_cmd[ret].func(_input_cnt, _input_arg);
+				for(i = 0; i < _input_cnt; i++)
+				{
+					free(_input_arg[i]);
+				}
+				free(_input_arg);
+				_input_arg = NULL;
+			}
+			
         }
     }
 

@@ -18,6 +18,7 @@ typedef struct _command{
     char cmd[COMMAND_MAX_DEP * COMMAND_MAX_LEN + 1]; /* 存储该命令 */
     char tip[COMMAND_MAX_TIP + 1];                   /* 该命令的说明 */
     void (* func)(int argc, char **argv);            /* 该命令的函数指针 */
+    int mode;                                        /* 该命令的执行方式 */
 }command_s;
 
 #endif
