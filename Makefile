@@ -1,35 +1,26 @@
-##################################################################### 
-## liblshell.a                        
-## 鸣谢博客：https://blog.csdn.net/li_wen01/article/details/65627086      
-## 鸣谢博客：https://blog.csdn.net/yudingding6197/article/details/2831638   
-## ##################################################################
-LIB_NAME = lshell                                                                                 
-STATIC_NAME = lib$(LIB_NAME)
+#引用全局变量
+-include Makefile.env
+#编译的最终目标
+TARGET = liblshell.a
+#需要编译的文件夹
+COMPILE_DIR = src
 
-SRC_DIR := src/
-INCLUDE_DIR := include/
-BUILD_DIR := build/
-LIBS := -lreadline -ltermcap 
-CFLAGS = -g -Wall
+all: subdirs $(TARGET)
 
-SRCS := $(wildcard $(SRC_DIR)*.c)
-OBJS := $(patsubst %.c,%.o,$(SRCS))
-INCS := -I$(INCLUDE_DIR)
+#检查文件夹是否存在，若不存在则创建。执行每个需要编译的文件夹中的makefile
+subdirs: $(COMPILE_DIR)
+	@if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi;\
+	if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi;\
+	for dir in $(COMPILE_DIR);do $(MAKE) -C $$dir all||exit 1;done
 
-ifeq ($(VERBOSE),)
-SILENCE=@echo "building: "$@;
-else
-SILENCE=
-endif
+#链接obj所有的.o 文件
+$(TARGET): $(OBJS)
+	ar -cr $(BUILD_DIR)/$(TARGET) $(OBJS)
 
-all:$(STATIC_NAME)
- 
-%.o:%.c
-	$(CC) -c $< -o $@ $(INCS) $(LIBS) $(CFLAGS)
- 
-$(STATIC_NAME):$(OBJS)
-	$(SILENCE)if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi;
-	ar -cr $(BUILD_DIR)$@.a $^
- 
+OBJS = $(wildcard $(OBJ_DIR)/*.o)
+
 clean:
-	rm -rf $(OBJS) $(BUILD_DIR)*
+	rm -rf $(OBJ_DIR)/*.o
+	rm -rf $(BUILD_DIR)/$(TARGET)
+
+.PHONY: all clean
