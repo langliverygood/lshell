@@ -20,7 +20,7 @@ static char _err_msg_on;                                                       /
 static thread_header_s th_header[THREAD_MAX_NUM];                              /* 线程管理结构体数组 */
 
 /***************************************************************/
-/**函  数：get_first_unused_th_header() *************************/
+/* 函  数：get_first_unused_th_header() *************************/
 /* 说  明：返回当前第一个未使用的线程头结构体的下标 ********************/
 /* 参  数：无 ****************************************************/
 /* 返回值：下标 ***************************************************/
@@ -42,7 +42,7 @@ static int get_first_unused_th_header()
 }
 
 /***************************************************************/
-/**函  数：static void print_err_msg() **************************/
+/* 函  数：static void print_err_msg() **************************/
 /* 说  明：当错误信息开关打开时，打印错误信息 *************************/
 /* 参  数：无 ****************************************************/
 /* 返回值：无 ****************************************************/
@@ -58,7 +58,7 @@ static void print_err_msg()
 }
 
 /***************************************************************/
-/**函  数：static int get_cmd_index(char *cmd) ******************/
+/* 函  数：static int get_cmd_index(char *cmd) ******************/
 /* 说  明：在_cmd_all中判断命令是否存在 ****************************/
 /* 参  数：cmd 待判断的命令 ***************************************/
 /* 返回值：存在 该命令在_cmd_all 中的下标 **************************/
@@ -80,21 +80,21 @@ static int get_cmd_index(char *cmd)
 }
 
 /***************************************************************/
-/**函  数：static int cmd_exist(char **arg, int num) ************/
-/* 说  明：在_cmd_all中判断命令是否存在 ****************************/
-/* 参  数：arg 终端输入根据空格划分后的字符串数组 ********************/
+/* 函  数：static int cmd_exist(char **arg, int num,... *********/
+/* 说  明：在字符串数组中，最多前ret个可以组成命令 ********************/
+/* 参  数：arg 终端输入根据空格划分后的字符串数组 *********************/
 /*      ：num 字符串数组前num个元素需要拼接后进行判断 ****************/
-/* 返回值：存在 该命令在_cmd_all 中的下标 **************************/
-/*      ：不存在 -1 *********************************************/
+/*      ：max_len 字符串数组的容量 ********************************/
+/* 返回值：ret **************************************************/
 /**************************************************************/
-static int cmd_exist(char *arg, int num)
+static int cmd_exist(char *arg, int num, int max_len)
 {
     int i;
     char tmp[COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];
     
-    if(num == 0)
+    if(num > max_len)
     {
-        return -1;
+        return num - 1;
     }
     
     /* 字符串数组中前num个元素进行拼接 */
@@ -111,16 +111,15 @@ static int cmd_exist(char *arg, int num)
     {
         if(strcmp(tmp, _cmd_all[i]) == 0)
         {
-            _input_cnt = num;
-            return i;
+            return cmd_exist(arg, num + 1, max_len);
         }
     }
 
-    return cmd_exist(arg, num - 1);
+    return (num - 1);
 }
 
 /***************************************************************/
-/**函  数：static int get_id_by_cmd(const char *cmd) ************/
+/* 函  数：static int get_id_by_cmd(const char *cmd) ************/
 /* 说  明：获得命令在结构体数组中的下标 ******************************/
 /* 参  数：cmd 待判断的命令 ***************************************/
 /* 返回值：存在 该命令在结构体数组中的下标 ***************************/
@@ -142,7 +141,7 @@ static int get_id_by_cmd(const char *cmd)
 }
 
 /***************************************************************/
-/**函  数：static int lshell_analysis_input(const char *input) **/
+/* 函  数：static int lshell_analysis_input(const char *input) **/
 /* 说  明：解析终端输入 *******************************************/
 /* 参  数：input 终端输入 ****************************************/
 /* 返回值：成功 最终子命令在结构体数组中的下标 ************************/
@@ -200,24 +199,16 @@ static int lshell_analysis_input(const char *input)
         i = j;
     }
     
-    /* 找到第一个在结构体数组中不存在的参数 */
-    for(i = 0; i < input_cnt; i++)
-    {
-        if(get_id_by_cmd(input_arg[i]) == -1)
-        {
-            break;
-        }
-    }
-    /* 判断命令是否存在 */
-    id = cmd_exist((char *)input_arg, i);
-    if(id == -1)
+    /* 在字符串数组中，最多前i个可以组成命令 */
+    i = cmd_exist((char *)input_arg, 1, input_cnt);
+    if(i == 0)
     {
         return -1;
     }
     
-    id = get_id_by_cmd(input_arg[_input_cnt - 1]);
+    id = get_id_by_cmd(input_arg[i - 1]);
     /* input_arg去除命令后,剩下的元素即为参数,存储到全局变量_input_arg中, 参数个数存储到全局变量_input_cnt */
-    _input_cnt = input_cnt - _input_cnt;
+    _input_cnt = input_cnt - i;
     _input_arg = (char **)malloc(_input_cnt * sizeof(char *));
     for(j = 0; i < input_cnt; i++)
     {
@@ -235,11 +226,34 @@ static int lshell_analysis_input(const char *input)
 static void lshell_help(int argc, char **argv)
 {
 	int i;
+	char cmd_tmp[COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];
 	
+	if(argc == 0)
+	{
+		for(i = 0; i < _cmd_index; i++)
+		{
+			printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
+		}
+		return;
+	}
+	
+	memset(cmd_tmp, 0, sizeof(cmd_tmp));
+	
+	for(i = 0; i < argc; i++)
+	{
+		strcat(cmd_tmp, argv[i]);
+		strcat(cmd_tmp, " ");
+	}
+	cmd_tmp[strlen(cmd_tmp) - 1] = '\0';
 	for(i = 0; i < _cmd_index; i++)
 	{
-		printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
+		if(strcmp(cmd_tmp, _cmd_all[i]) == 0)
+		{
+			printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
+			return;
+		}
 	}
+	printf("Cmd :%s does not exist!\n", cmd_tmp);
 	
 	return;
 }
@@ -255,7 +269,7 @@ static void lshell_exit(int argc, char **argv)
 }
 
 /***************************************************************/
-/**函  数：int lshell_register(int parent...) *******************/
+/* 函  数：int lshell_register(int parent...) *******************/
 /* 说  明：注册命令 **********************************************/
 /* 参  数：parent 父命令id，若无父命令，则为-1 **********************/
 /* 参  数：cmd 待注册的命令 ***************************************/
@@ -326,7 +340,7 @@ int lshell_register(int parent, const char *cmd, const char *tip, void (* func)(
 }
 
 /***************************************************************/
-/**函  数：void lshell_set_promt(const char *pmt) ***************/
+/* 函  数：void lshell_set_promt(const char *pmt) ***************/
 /* 说  明：注册命令 **********************************************/
 /* 参  数：pmt 提示符 ********************************************/
 /* 返回值：无 ***************************************************/
@@ -339,7 +353,7 @@ void lshell_set_promt(const char *pmt)
 }
 
 /***************************************************************/
-/**函  数：void lshell_set_errmsg_swtich(int flag) **************/
+/* 函  数：void lshell_set_errmsg_swtich(int flag) **************/
 /* 说  明：设置错误提示开关 ****************************************/
 /* 参  数：flag 0  关闭错误提示 ***********************************/
 /*             1  打开错误提示 ***********************************/
@@ -360,7 +374,7 @@ void lshell_set_errmsg_swtich(int flag)
 }
 
 /***************************************************************/
-/**函  数：void lshell_init() ***********************************/
+/* 函  数：void lshell_init() ***********************************/
 /* 说  明：lshell初始化 ******************************************/
 /* 参  数：无 ***************************************************/
 /* 返回值：无 ***************************************************/
@@ -369,8 +383,8 @@ void lshell_init()
 {
     lshell_readline_init();
     lshell_set_promt("lshell");
-    lshell_register(-1, "exit", "exit", lshell_exit, RUN_AT_MAIN_THREAD);
-	lshell_register(-1, "help", "help", lshell_help, RUN_AT_MAIN_THREAD);
+    lshell_register(-1, "exit", "Close the program.", lshell_exit, RUN_AT_MAIN_THREAD);
+	lshell_register(-1, "help", "show the commands' help.", lshell_help, RUN_AT_MAIN_THREAD);
 	//lshell_register(-1, "threads", "threads", lshell_help, RUN_AT_MAIN_THREAD);
 	//lshell_register(-1, "stop", "stop", lshell_help, RUN_AT_MAIN_THREAD);
 
@@ -378,7 +392,7 @@ void lshell_init()
 }
 
 /****************************************************************/
-/**函  数：void lshell_start() ***********************************/
+/* 函  数：void lshell_start() ***********************************/
 /* 说  明：lshell启动 ********************************************/
 /* 参  数：无 ****************************************************/
 /* 返回值：无 ****************************************************/
