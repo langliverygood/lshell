@@ -6,7 +6,6 @@
 
 #include "lshell_readline.h"
 #include "lshell_def.h"
-#include "threads_manage.h"
 #include "lshell.h"
 
 extern command_s _my_cmd[COMMAND_MAX_NUM];                                     /* 命令数组,下标从0开始 */
@@ -17,29 +16,6 @@ int _input_cnt;                                                                /
 char **_input_arg;                                                             /* 输入中除去命令后的每个参数,传递给回调函数 */
 static char _err_msg[ERR_MSG_LEN + 1];                                         /* 错误信息 */
 static char _err_msg_on;                                                       /* 错误信息开关 */
-static thread_header_s th_header[THREAD_MAX_NUM];                              /* 线程管理结构体数组 */
-
-/***************************************************************/
-/* 函  数：get_first_unused_th_header() *************************/
-/* 说  明：返回当前第一个未使用的线程头结构体的下标 ********************/
-/* 参  数：无 ****************************************************/
-/* 返回值：下标 ***************************************************/
-/*      ：-1 结构体全被占用 ***************************************/
-/***************************************************************/
-static int get_first_unused_th_header()
-{
-	int i;
-	
-	for(i = 0; i < THREAD_MAX_NUM; i++)
-	{
-		if(th_header[i].used == 0)
-		{
-			return i;
-		}
-	}
-	
-	return -1;
-}
 
 /***************************************************************/
 /* 函  数：static void print_err_msg() **************************/
@@ -221,54 +197,6 @@ static int lshell_analysis_input(const char *input)
 }
 
 /***************************************************************/
-/* 说  明：预定义help命令 *****************************************/
-/***************************************************************/
-static void lshell_help(int argc, char **argv)
-{
-	int i;
-	char cmd_tmp[COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)];
-	
-	if(argc == 0)
-	{
-		for(i = 0; i < _cmd_index; i++)
-		{
-			printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
-		}
-		return;
-	}
-	
-	memset(cmd_tmp, 0, sizeof(cmd_tmp));
-	
-	for(i = 0; i < argc; i++)
-	{
-		strcat(cmd_tmp, argv[i]);
-		strcat(cmd_tmp, " ");
-	}
-	cmd_tmp[strlen(cmd_tmp) - 1] = '\0';
-	for(i = 0; i < _cmd_index; i++)
-	{
-		if(strcmp(cmd_tmp, _cmd_all[i]) == 0)
-		{
-			printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
-			return;
-		}
-	}
-	printf("Cmd :%s does not exist!\n", cmd_tmp);
-	
-	return;
-}
-
-/***************************************************************/
-/* 说  明：预定义exit命令 *****************************************/
-/***************************************************************/
-static void lshell_exit(int argc, char **argv)
-{
-    printf("Bye!\n");
-    
-	exit(0);
-}
-
-/***************************************************************/
 /* 函  数：int lshell_register(int parent...) *******************/
 /* 说  明：注册命令 **********************************************/
 /* 参  数：parent 父命令id，若无父命令，则为-1 **********************/
@@ -384,9 +312,9 @@ void lshell_init()
     lshell_readline_init();
     lshell_set_promt("lshell");
     lshell_register(-1, "exit", "Close the program.", lshell_exit, RUN_AT_MAIN_THREAD);
-	lshell_register(-1, "help", "show the commands' help.", lshell_help, RUN_AT_MAIN_THREAD);
-	//lshell_register(-1, "threads", "threads", lshell_help, RUN_AT_MAIN_THREAD);
-	//lshell_register(-1, "stop", "stop", lshell_help, RUN_AT_MAIN_THREAD);
+	lshell_register(-1, "help", "Show the commands' help.", lshell_help, RUN_AT_MAIN_THREAD);
+	lshell_register(-1, "threads", "Show all the child threads", lshell_threads, RUN_AT_MAIN_THREAD);
+	lshell_register(-1, "kill", "Kill the thread(s)", lshell_kill, RUN_AT_MAIN_THREAD);
 
     return;
 }
@@ -423,16 +351,7 @@ void lshell_start()
         {
 			if(_my_cmd[ret].mode == RUN_AT_NEW_THREAD)
 			{
-				i = get_first_unused_th_header();
-				if(i == -1)
-				{
-					printf("The number of threads the program can handle has reached its maximum\n");
-					continue;
-				}
-				th_header[i].argc = _input_cnt;
-				th_header[i].argv = _input_arg;
-				th_header[i].func = _my_cmd[ret].func;
-				thread_start(&th_header[i], _my_cmd[ret].tip);
+				start_new_thread(ret);
 			}
 			else
 			{
