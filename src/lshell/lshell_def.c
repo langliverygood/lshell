@@ -71,12 +71,11 @@ void lshell_threads(int argc, char **argv)
 {
 	int i;
 	
-	printf("id%*stid%*smessage\n", 2, "", 20, "");
+	printf("id%*stid%*smessage\n", 2, "", 25, "");
 	for(i = 0; i < THREAD_MAX_NUM; i++)
 	{
 		if(th_header[i].used == 1)
 		{
-			printf("%*s\"%s\"\n", -COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1), _cmd_all[i], _my_cmd[i].tip);
 			printf("%-4d%-23lu%*s\"%s\"\n", i, th_header[i].tid, 5, "", th_header[i].message);
 		}
 	}
@@ -89,10 +88,9 @@ void lshell_threads(int argc, char **argv)
 /***************************************************************/
 void lshell_kill(int argc, char **argv)
 {
-	int i, j;
+	int i, id;
 	long val;
 	char *endptr, c;
-	pthread_t tid;
 	
 	if(argc == 0)
 	{
@@ -100,11 +98,11 @@ void lshell_kill(int argc, char **argv)
 		scanf(" %c", &c);
 		if(c == 'y' || c == 'Y')
 		{
-			for(j = 0; j < THREAD_MAX_NUM; j++)
+			for(i = 0; i < THREAD_MAX_NUM; i++)
 			{
-				if(th_header[j].used == 1)
+				if(th_header[i].used == 1)
 				{
-					thread_stop(&th_header[j]);
+					thread_stop(&th_header[i]);
 				}
 			}
 		}
@@ -123,14 +121,10 @@ void lshell_kill(int argc, char **argv)
 			{
 			   continue;
 			}
-			tid = (pthread_t)val;
-			for(j = 0; j < THREAD_MAX_NUM; j++)
+			id = (int)val;
+			if(id >= 0 && id < THREAD_MAX_NUM)
 			{
-				if(th_header[j].used == 1 && th_header[j].tid == tid)
-				{
-					thread_stop(&th_header[j]);
-					break;
-				}
+				thread_stop(&th_header[id]);
 			}
 		}
 	}
