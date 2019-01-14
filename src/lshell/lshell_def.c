@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <malloc.h>
 #include <pthread.h>
 #include <limits.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #include "threads_manage.h"
 #include "lshell_def.h"
@@ -16,6 +18,46 @@ extern int _input_cnt;                                                         /
 extern char **_input_arg;                                                      /* 输入中除去命令后的每个参数,传递给回调函数 */
 thread_header_s th_header[THREAD_MAX_NUM];                                     /* 线程管理结构体数组 */
 
+/***************************************************************/
+/* 说  明：获得线程运行时间 *****************************************/
+/***************************************************************/
+static char * get_run_time(struct timeval start, struct timeval end, char *out_str)
+{
+	int days, hours, minites, seconds, m_seconds;
+	char m_seconds_str[4];
+	
+	if(start.tv_usec > end.tv_usec)
+	{
+		end.tv_sec--;
+		end.tv_usec += 1000000;
+	}
+	m_seconds = end.tv_usec - start.tv_usec;
+	seconds = end.tv_sec - start.tv_sec;
+	
+	days = 0;
+	hours = 0;
+	minites = 0;
+	while(seconds > 86400)
+	{
+		days++;
+		seconds -= 86400;
+	}
+	while(seconds > 3600)
+	{
+		hours++;
+		seconds -= 3600;
+	}
+	while(seconds > 60)
+	{
+		minites++;
+		seconds -= 60;
+	}
+	snprintf(m_seconds_str, sizeof(m_seconds_str), "%d", m_seconds);
+	sprintf(out_str, "%dd %dh %dm %d.%ss", days, hours, minites, seconds, m_seconds_str);
+	
+	return out_str;
+}
+ 
 /***************************************************************/
 /* 说  明：预定义help命令 *****************************************/
 /***************************************************************/
@@ -70,13 +112,21 @@ void lshell_exit(int argc, char **argv)
 void lshell_threads(int argc, char **argv)
 {
 	int i;
+	char time[128];
+	struct timeval tv;
+	struct timeval tv_tmp;
 	
-	printf("id%*stid%*smessage\n", 2, "", 25, "");
+	gettimeofday(&tv, NULL);
+	printf("id%*stid%*srun_time%*smessage\n", 3, "", 21, "", 23, "");
 	for(i = 0; i < THREAD_MAX_NUM; i++)
 	{
 		if(th_header[i].used == 1)
 		{
-			printf("%-4d%-23lu%*s\"%s\"\n", i, th_header[i].tid, 5, "", th_header[i].message);
+			tv_tmp.tv_sec = th_header[i].starttime_high;
+			tv_tmp.tv_usec = th_header[i].starttime_low;
+			memset(time, 0, sizeof(time));
+			get_run_time(tv_tmp, tv, time);
+			printf("%-4d %-22lu  %-30.30s \"%s\"\n", i, th_header[i].tid, time, th_header[i].message);
 		}
 	}
     
