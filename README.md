@@ -1,3 +1,12 @@
-# lshell
-鸣谢：https://blog.csdn.net/cheng_fangang/article/details/8657848
+# 基于readline库的交互式程序框架lshell #
+
+编译目标：build/liblshell.a
+使用方法：需要liblshell.a和lshell.h这两个文件。
+
+简介：1、利用该框架可以编写类似gdb的交互式程序，即敲入命令，程序执行相应的代码，并返回结果。
+	 2、该框架类似bash，有提示符，支持tab补全命令，历史命令的补全。
+	 3、该框架提供多个函数接口，可以直接调用函数注册命令，绑定输入命令后执行的函数，支持多级命令。
+	 4、该框架支持多线程，有线程管理部分，可以创建线程杀死线程。
+	 5、该框架预置了help、exit、thread、kill命令。
+	 6、可以参考example下的示例代码。
 
