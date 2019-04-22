@@ -5,11 +5,10 @@
 #include "lshell_def.h"
 #include "lshell_readline.h"
 
-command_s _my_cmd[COMMAND_MAX_NUM];                                      /* 命令数组,下标从0开始 */
-int _cmd_index;                                                          /* 当前第一个未使用的数组下标 */
-char _promt[PROMT_MAX_LEN + 1];                                          /* 提示符 */
-char *_input_buf;                                                        /* 输入 */
-char _cmd_all[COMMAND_MAX_NUM][COMMAND_MAX_DEP * (COMMAND_MAX_LEN + 1)]; /* 父命令和子命令拼接后的所有命令 */
+extern command_s _my_cmd[COMMAND_MAX_NUM]; /* 命令数组,下标从0开始 */
+extern int _cmd_index;                     /* 当前第一个未使用的数组下标 */
+extern char _promt[PROMT_MAX_LEN + 1];     /* 提示符 */
+static char *_input_buf;                   /* 输入 */
 
 /* 说明：tab键补全命令 */
 char* command_generator(const char *text, int state)
@@ -25,7 +24,7 @@ char* command_generator(const char *text, int state)
 
     while(list_index < _cmd_index)
     {
-        name = _cmd_all[list_index++];
+        name = _my_cmd[list_index++].cmd;
         if (strncmp(name, text, len) == 0)
         {
             return strdup(name);

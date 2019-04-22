@@ -6,7 +6,10 @@
 #include <sys/time.h>
 #include <pthread.h>
 
+#include "lshell_def.h"
 #include "threads_manage.h"
+
+extern char _err_msg[ERR_MSG_LEN + 1];           /* 错误信息 */
 
 /***************************************************************/
 /* 函  数：recycle_thread_res ***********************************/
@@ -16,18 +19,6 @@
 /***************************************************************/
 static void recycle_thread_res(thread_header_s *th_header)
 {
-	int i;
-	
-	if(th_header->used == 0)
-	{
-		return;
-	}
-	
-	for(i = 0; i < th_header->argc; i++)
-	{
-		free(th_header->argv[i]);
-	}
-	free(th_header->argv);
 	memset(th_header, 0, sizeof(thread_header_s));
 	
 	return;
@@ -42,11 +33,24 @@ static void *thread_func(void *arg)
 {
 	thread_header_s *th_header;
 	
-	pthread_detach(pthread_self()); 						  /* 设置线程的分离状态 */
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);      /* 设置线程可被其他线程cansel */
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL); /* 设置线程收到cansel信号时立刻退出 */
-	
 	th_header = (thread_header_s *)arg;
+	if(th_header->cancelstate == 0)
+	{
+		pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL); /* 线程可被其他线程cansel */
+	}
+	else
+	{
+		pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL); /* 线程不可被其他线程cansel */
+	}
+	
+	if(th_header->canceltype == 0)
+	{             
+		pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); /* 收到cansel信号继续运行至下一个取消点再退出 */
+	}
+	else
+	{
+		pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL); /* 收到cansel信号时立刻退出 */
+	}
 	th_header->func(th_header->argc, th_header->argv);
 	recycle_thread_res(th_header);
 	
@@ -74,8 +78,14 @@ char thread_start(thread_header_s *th_header, char *message)
 	if(pthread_create(&(th_header->tid), NULL, thread_func, (void *)th_header) != 0)
 	{
 		recycle_thread_res(th_header);
-		printf("%s thread failed to start!\n", message);
+		snprintf(_err_msg, ERR_MSG_LEN, "%s thread failed to start!\n", message);
 		return 1;
+	}
+	
+	/* 如果新线程是joined, 则在此阻塞 */
+	if(th_header->join_detach == 0)
+	{
+		pthread_join(th_header->tid, NULL);
 	}
 	
 	return 0;
