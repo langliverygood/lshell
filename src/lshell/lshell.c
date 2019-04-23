@@ -63,7 +63,7 @@ static int get_cmd_index(char *cmd)
 /***************************************************************/
 static int lshell_analysis_input(const char *input)
 {
-    int i, j, id, len, argc;
+    int i, j, k, id, len, argc;
     char args[COMMAND_MAX_LEN][COMMAND_MAX_LEN + 1];
     char tmp[COMMAND_MAX_LEN + 1];
 
@@ -106,18 +106,19 @@ static int lshell_analysis_input(const char *input)
     }
     
     /* 在字符串数组中，最多前i个可以组成命令 */
-    i = 1;
     sprintf(tmp, "%s", args[0]);
-    id = j = get_cmd_index(tmp);
-    while(j != -1)
+    id = get_cmd_index(tmp);
+    for(k = 1, i = 1; k < argc; k++)
     {
-		id = j;
 		strcat(tmp, " ");
-		strcat(tmp, args[i]);
-		j = get_cmd_index(tmp);
-		i++;
+		strcat(tmp, args[k]);
+		if((j = get_cmd_index(tmp)) != -1)
+		{
+			id = j;
+			i = k + 1;
+		}
+		
 	}
-	i--;
 	
     /* input_arg去除命令后,剩下的元素即为参数,存储到全局变量_input_arg中, 参数个数存储到全局变量_input_cnt */
     _input_cnt = argc - i;
