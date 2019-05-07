@@ -39,10 +39,7 @@ char** command_completion (const char *text, int start, int end)
 {
     char **matches = NULL;
 
-    if(start == 0)
-    {
-        matches = rl_completion_matches(text, command_generator);
-    }
+	matches = rl_completion_matches(text, command_generator);
 
     return (matches);
 }
