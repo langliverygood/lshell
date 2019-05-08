@@ -82,10 +82,14 @@ char thread_start(thread_header_s *th_header, char *message)
 		return 1;
 	}
 	
-	/* 如果新线程是joined, 则在此阻塞 */
+	/* 如果新线程是joined, 则在此阻塞。 否则设置为detach */
 	if(th_header->join_detach == 0)
 	{
 		pthread_join(th_header->tid, NULL);
+	}
+	else
+	{
+		pthread_detach(th_header->tid);
 	}
 	
 	return 0;
