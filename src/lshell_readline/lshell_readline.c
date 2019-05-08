@@ -39,7 +39,7 @@ char** command_completion (const char *text, int start, int end)
 {
     char **matches = NULL;
 
-	matches = rl_completion_matches(text, command_generator);
+    matches = rl_completion_matches(text, command_generator);
 
     return (matches);
 }
@@ -49,8 +49,8 @@ void lshell_readline_init()
 {
     rl_readline_name = "lshell";
     rl_attempted_completion_function = command_completion;
-	
-	return;
+    
+    return;
 }
 
 /* 说明：从终端读取一次输入 */
@@ -67,6 +67,6 @@ char *lshell_gets()
     {
         add_history(_input_buf);
     }
-	
+    
     return(_input_buf);
 }
