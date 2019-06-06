@@ -7,8 +7,8 @@
 #define DETACHED 1           /* 线程的分离态 */
 #define CANSEL_ENABLE    0   /* 线程可被取消 */   
 #define CANSEL_DISENABLE 1   /* 线程不可被取消 */
-#define CANSEL_EXIT_NOW  0   /* 线程的在下个取消点被取消 */
-#define CANSEL_EXIT_WAIT 1   /* 线程立刻被取消 */
+#define CANSEL_EXIT_WAIT 0   /* 线程的在下个取消点被取消 */
+#define CANSEL_EXIT_NOW  1   /* 线程立刻被取消 */
 
 
 /****************************************************************/
