@@ -1,6 +1,8 @@
 #ifndef _LSHELL_H_
 #define _LSHELL_H_
 
+#include <stdio.h>
+
 #define RUN_AT_MAIN_THREAD 0 /* 在主线程中执行命令 */
 #define RUN_AT_NEW_THREAD  1 /* 在新线程中执行命令 */
 #define JOINED   0           /* 线程的链接态 */
